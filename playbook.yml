@@ -1,0 +1,49 @@
+-
+  hosts: localhost
+  tasks:
+    ###############################
+    # Test case 1: File not found #
+    ###############################
+    - name: "Finding /etc/login.defs"
+      stat:
+        path: '/etc/login.defs'
+      register: file_exist
+    - name: "Test case 1 - File not found"
+      fail: 
+        msg: "/etc/login.defs not found"
+      when: not file_exist.stat.exists
+    #########
+    # Setup #
+    #########
+    - name: "Setup"
+      set_fact:
+        # \s* matches \t as well, \t = 3 x \s
+        targets: "{{ lookup('file', '/etc/login.defs') | regex_findall('\\n\\s*PASS_MAX_DAYS.*') | trim }}"
+    ##############################
+    # Test case 2: Key not found #
+    ##############################
+    - name: "Test case 2 - Key not found"
+      fail:
+        msg: "PASS_MAX_DAYS key cannot be found"
+      when: targets | length == 0
+   #########################
+   # Test case 3: No value #
+   #########################
+    - name: "Finding - no value"
+     # find lines with both key and value, if cannot be found, then no value found
+      set_fact: 
+        targetTC3: "{{ targets | select('search', '\\n\\s*PASS_MAX_DAYS\\s+\\S+') | list }}"
+    - name: "Test case 3: - No value"
+      fail:
+        msg: "PASS_MAX_DAYS has no value"
+      when: targetTC3 | length == 0
+   ################################
+   # Test case 4: Multiple values #
+   ################################
+    - name: "Finding - Multiple values"
+      set_fact:
+        targetTC4: "{{ targetTC3 | last | regex_findall('\\n\\s*PASS_MAX_DAYS\\s+\\S+\\s+[^#]\\S+') }}"
+    - name: "Test case 4 - Multiple values"
+      fail:
+        msg: "PASS_MAX_DAYS has multiple values"
+      when: targetTC4 | length > 0
