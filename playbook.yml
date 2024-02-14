@@ -111,6 +111,9 @@
           state: present
           create: true
     rescue:
+      #- name: "debugging"
+       # debug:
+        #  msg: "{{ ansible_hostname }}"
       - name: "Logging to /tmp/ansible1D.log"
         lineinfile:
           path: /tmp/ansible1D.log
@@ -124,7 +127,8 @@
           port: 587
           sender: "justin.gxh98@gmail.com"
           to: "justin.gxh98@gmail.com"
-          subject: "{{ datetime }} - FAIL - 1D.Password expiration CIS check"
-          body: "{{ error_msg }}"
+          subject: "{{ datetime }}, {{ ansible_hostname }} - FAIL - 1D.Password expiration CIS check"
+          body: "{{ datetime }}, {{ ansible_hostname }}, {{ ansible_default_ipv4.address }} -- {{ error_msg }}"
           username: "justin.gxh98@gmail.com"
           password: "evik bjdh mwtc xddw"
+        delegate_to: localhost
