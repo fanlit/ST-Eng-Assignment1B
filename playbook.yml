@@ -1,6 +1,9 @@
 ---
 - name: "1D. PASS_MAX_DAYS"
   hosts: localhost
+  vars:
+    datetime: "{{ '%d/%m/%Y_%H:%M' | strftime(ansible_date_time.epoch) }}"
+    error_msg: "[FAIL] /etc/login.defs not found"
   tasks:
   - block:
     ###############################
@@ -12,7 +15,7 @@
         register: file_exist
       - name: "Test case 1 - File not found"
         fail: 
-          msg: "[FAIL] /etc/login.defs not found, SSH cannot be started"
+          msg: "{{ error_msg }}"
         when: not file_exist.stat.exists
    
    ##############################
@@ -20,11 +23,12 @@
    ##############################
       - name: "Setup"
         set_fact:
-        # \s* matches \t as well, \t = 3 x \s
+          error_msg: "[FAIL] PASS_MAX_DAYS key cannot be found"
+          # \s* matches \t as well, \t = 3 x \s
           targets: "{{ lookup('file', '/etc/login.defs') | regex_findall('\\n\\s*PASS_MAX_DAYS.*') | trim }}"
       - name: "Test case 2 - Key not found"
         fail:
-          msg: "[FAIL] PASS_MAX_DAYS key cannot be found, SSH cannot be started"
+          msg: "{{ error_msg }}"
         when: targets | length == 0
    
    #########################
@@ -32,11 +36,12 @@
    #########################
       - name: "Finding - no value"
      # find lines with both key and value, if cannot be found, then no value found
-        set_fact: 
+        set_fact:
+          error_msg: "[FAIL] PASS_MAX_DAYS has no value"
           targetTC3: "{{ targets | select('search', '\\n\\s*PASS_MAX_DAYS\\s+\\S+') | list }}"
       - name: "Test case 3: - No value"
         fail:
-          msg: "[FAIL] PASS_MAX_DAYS has no value, SSH cannot be started"
+          msg: "{{ error_msg }}"
         when: targetTC3 | length == 0
    
    ################################
@@ -44,10 +49,11 @@
    ################################
       - name: "Finding - Multiple values"
         set_fact:
+          error_msg: "[FAIL] PASS_MAX_DAYS has multiple values"
           targetTC4: "{{ targetTC3 | last | regex_findall('\\n\\s*PASS_MAX_DAYS\\s+\\S+\\s+[^#]\\S+') }}"
       - name: "Test case 4 - Multiple values"
         fail:
-          msg: "[FAIL] PASS_MAX_DAYS has multiple values, SSH cannot be started"
+          msg: "{{ error_msg }}"
         when: targetTC4 | length > 0
 
    ##############################
@@ -58,6 +64,7 @@
         # "()" creates a capture group and indicates precedence - findall helps capture the value within the "()"
           targetTC5: "{{ targetTC3 | last | regex_findall('\\n\\s*PASS_MAX_DAYS\\s+(.+\\b)') }}"
           int_Converted: "X"
+          error_msg: "[FAIL] PASS_MAX_DAYS has an invalid value"
 
       - name: "Attempting convertion, Hex -> Deci"
         set_fact:
@@ -68,27 +75,56 @@
         set_fact:
           int_Converted: "{{ targetTC5[0] | int(base=8) }}"
         when: int_Converted == 'X' and targetTC5[0] | regex_search('^-*0[0-7]+$')
-    
+      
+      - name: "Value -> Deci"
+        set_fact:
+          int_Converted: "{{ targetTC5[0] }}"
+        when: int_Converted == 'X' and targetTC5[0] | regex_search('^-*[0-9]+$')
+      
       - name: "Test case 5 - Invalid value"
         fail:
-          msg: "[FAIL] PASS_MAX_DAYS has an invalid value, SSH cannot be started"
+          msg: "{{ error_msg }}"
         when: int_Converted == 'X' or ( int_Converted | int ) < -1 or ( int_Converted | int ) > 99999
 
    ####################################
    # Test case 6: Non-compliant value #
    ####################################
+      - name: "Finding non-compliant value"
+        set_fact:
+          error_msg: "[FAIL] PASS_MAX_DAYS is not set to 90 days or less"
       - name: "Test case 6 - Non-compliant value"
         fail:
-          msg: "[FAIL] PASS_MAX_DAYS is not set to 90 days or less"
+          msg: "{{ error_msg }}"
         when: ( int_Converted | int ) < 0 or ( int_Converted | int ) > 90
    
    ################################
    # Test case 7: Compliant value #
    ################################
       - name: "Test case 7: Compliant value"
-        debug:
-          msg: "Password expiration is set to 90 days or less"
+        set_fact:
+          error_msg: "[PASS] Password expiration is set to 90 days or less"
+      - name: "Logging to /tmp/ansible1D.log"
+        lineinfile:
+          path: /tmp/ansible1D.log
+          line: "{{ datetime }} -- {{ error_msg }}"
+          insertafter: EOF
+          state: present
+          create: true
     rescue:
+      - name: "Logging to /tmp/ansible1D.log"
+        lineinfile:
+          path: /tmp/ansible1D.log
+          line: "{{ datetime }} -- {{ error_msg }}"
+          insertafter: EOF
+          state: present
+          create: true
       - name: "Sending Email"
-        debug:
-          msg: "Sending Email"
+        community.general.mail:
+          host: smtp.gmail.com
+          port: 587
+          sender: "justin.gxh98@gmail.com"
+          to: "justin.gxh98@gmail.com"
+          subject: "{{ datetime }} - FAIL - 1D.Password expiration CIS check"
+          body: "{{ error_msg }}"
+          username: "justin.gxh98@gmail.com"
+          password: "evik bjdh mwtc xddw"
