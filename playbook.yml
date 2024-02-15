@@ -3,7 +3,7 @@
   hosts: RHEL-TARGET
   vars:
     datetime: "{{ '%d/%m/%Y_%H:%M' | strftime(ansible_date_time.epoch) }}"
-    error_msg: "[FAIL] /etc/login.defs not found"
+    error_msg: "[FAIL] 1D. Ensure password expiration is 90 days or less, /etc/login.defs not found"
   tasks:
   - block:
     ###############################
@@ -26,12 +26,9 @@
         register: targets
       - name: "Setup"
         set_fact:
-          error_msg: "[FAIL] PASS_MAX_DAYS key cannot be found"
+          error_msg: "[FAIL] 1D. Ensure password expiration is 90 days or less, PASS_MAX_DAYS key cannot be found"
           # \s* matches \t as well, \t = 3 x \s
           targetTC2: "{{ targets.stdout| regex_findall('\\n\\s*PASS_MAX_DAYS.*') | trim }}"
-      - name: "regex"
-        debug:
-          msg: "{{ targetTC2 }}"
       - name: "Test case 2 - Key not found"
         fail:
           msg: "{{ error_msg }}"
@@ -43,7 +40,7 @@
       - name: "Finding - no value"
      # find lines with both key and value, if cannot be found, then no value found
         set_fact:
-          error_msg: "[FAIL] PASS_MAX_DAYS has no value"
+          error_msg: "[FAIL] 1D. Ensure password expiration is 90 days or less, PASS_MAX_DAYS has no value"
           targetTC3: "{{ targetTC2 | select('search', '\\n\\s*PASS_MAX_DAYS\\s+\\S+') | list }}"
       - name: "Test case 3: - No value"
         fail:
@@ -55,7 +52,7 @@
    ################################
       - name: "Finding - Multiple values"
         set_fact:
-          error_msg: "[FAIL] PASS_MAX_DAYS has multiple values"
+          error_msg: "[FAIL] 1D. Ensure password expiration is 90 days or less, PASS_MAX_DAYS has multiple values"
           targetTC4: "{{ targetTC3 | last | regex_findall('\\n\\s*PASS_MAX_DAYS\\s+\\S+\\s+[^#]\\S+') }}"
       - name: "Test case 4 - Multiple values"
         fail:
@@ -70,7 +67,7 @@
         # "()" creates a capture group and indicates precedence - findall helps capture the value within the "()"
           targetTC5: "{{ targetTC3 | last | regex_findall('\\n\\s*PASS_MAX_DAYS\\s+(.+\\b)') }}"
           int_Converted: "X"
-          error_msg: "[FAIL] PASS_MAX_DAYS has an invalid value"
+          error_msg: "[FAIL] 1D. Ensure password expiration is 90 days or less, PASS_MAX_DAYS has an invalid value"
       - name: "debug"
         debug:
           msg: "{{ targetTC5 }}"
@@ -100,7 +97,7 @@
    ####################################
       - name: "Finding non-compliant value"
         set_fact:
-          error_msg: "[FAIL] PASS_MAX_DAYS is not set to 90 days or less"
+          error_msg: "[FAIL] 1D. Ensure password expiration is 90 days or less, PASS_MAX_DAYS is not set to 90 days or less"
       - name: "Test case 6 - Non-compliant value"
         fail:
           msg: "{{ error_msg }}"
@@ -111,25 +108,27 @@
    ################################
       - name: "Test case 7: Compliant value"
         set_fact:
-          error_msg: "[PASS] Password expiration is set to 90 days or less"
+          error_msg: "[PASS] 1D. Ensure password expiration is 90 days or less, Password expiration is set to 90 days or less"
       - name: "Logging to /tmp/ansible1D.log"
         lineinfile:
           path: /tmp/ansible1D.log
-          line: "{{ datetime }} -- {{ error_msg }}"
+          line: "{{ datetime }} {{ ansible_hostname }}, {{ ansible_default_ipv4.address }} -- {{ error_msg }}"
           insertafter: EOF
           state: present
           create: true
+        delegate_to: localhost
     rescue:
-      - name: "debugging"
-        debug:
-          msg: "{{ ansible_hostname }}"
+      #- name: "debugging"
+       # debug:
+        #  msg: "{{ ansible_hostname }}"
       - name: "Logging to /tmp/ansible1D.log"
         lineinfile:
           path: /tmp/ansible1D.log
-          line: "{{ datetime }} -- {{ error_msg }}"
+          line: "{{ datetime }} {{ ansible_hostname }} {{ ansible_default_ipv4.address }} -- {{ error_msg }}"
           insertafter: EOF
           state: present
           create: true
+        delegate_to: localhost
       - name: "Sending Email"
         community.general.mail:
           host: smtp.gmail.com
