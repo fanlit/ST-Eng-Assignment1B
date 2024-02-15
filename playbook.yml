@@ -1,6 +1,6 @@
 ---
 - name: "1D. PASS_MAX_DAYS"
-  hosts: localhost
+  hosts: RHEL-TARGET
   vars:
     datetime: "{{ '%d/%m/%Y_%H:%M' | strftime(ansible_date_time.epoch) }}"
     error_msg: "[FAIL] /etc/login.defs not found"
@@ -21,15 +21,21 @@
    ##############################
    # Test case 2: Key not found #
    ##############################
+      - name: "Reading /etc/login.defs"
+        shell: cat "/etc/login.defs"
+        register: targets
       - name: "Setup"
         set_fact:
           error_msg: "[FAIL] PASS_MAX_DAYS key cannot be found"
           # \s* matches \t as well, \t = 3 x \s
-          targets: "{{ lookup('file', '/etc/login.defs') | regex_findall('\\n\\s*PASS_MAX_DAYS.*') | trim }}"
+          targetTC2: "{{ targets.stdout| regex_findall('\\n\\s*PASS_MAX_DAYS.*') | trim }}"
+      - name: "regex"
+        debug:
+          msg: "{{ targetTC2 }}"
       - name: "Test case 2 - Key not found"
         fail:
           msg: "{{ error_msg }}"
-        when: targets | length == 0
+        when: targetTC2 | length == 0
    
    #########################
    # Test case 3: No value #
@@ -38,7 +44,7 @@
      # find lines with both key and value, if cannot be found, then no value found
         set_fact:
           error_msg: "[FAIL] PASS_MAX_DAYS has no value"
-          targetTC3: "{{ targets | select('search', '\\n\\s*PASS_MAX_DAYS\\s+\\S+') | list }}"
+          targetTC3: "{{ targetTC2 | select('search', '\\n\\s*PASS_MAX_DAYS\\s+\\S+') | list }}"
       - name: "Test case 3: - No value"
         fail:
           msg: "{{ error_msg }}"
@@ -65,6 +71,9 @@
           targetTC5: "{{ targetTC3 | last | regex_findall('\\n\\s*PASS_MAX_DAYS\\s+(.+\\b)') }}"
           int_Converted: "X"
           error_msg: "[FAIL] PASS_MAX_DAYS has an invalid value"
+      - name: "debug"
+        debug:
+          msg: "{{ targetTC5 }}"
 
       - name: "Attempting convertion, Hex -> Deci"
         set_fact:
@@ -111,9 +120,9 @@
           state: present
           create: true
     rescue:
-      #- name: "debugging"
-       # debug:
-        #  msg: "{{ ansible_hostname }}"
+      - name: "debugging"
+        debug:
+          msg: "{{ ansible_hostname }}"
       - name: "Logging to /tmp/ansible1D.log"
         lineinfile:
           path: /tmp/ansible1D.log
