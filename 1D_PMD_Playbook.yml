@@ -1,0 +1,199 @@
+---
+- name: "1D. PASS_MAX_DAYS"
+  hosts: RHEL-TARGET
+  # PMD_Playbook_Failure: false
+  vars_files:
+    - var.yml
+  vars:
+    log_path: "{{ playbook_dir }}/logs/ansible1D.log"
+    error_msg: "[FAIL] 1D. Ensure password expiration is 90 days or less, /etc/login.defs not found"
+  tasks:
+    ###############################
+    # Test case 1: File not found #
+    ###############################
+    - name: "Finding /etc/login.defs"
+      stat:
+        path: '/etc/login.defs'
+      register: file_exist
+    - name: "Test case 1 - File not found"
+      when: not file_exist.stat.exists
+      block:
+        - name: "Results"
+          debug:
+            msg: "{{ error_msg }}"
+        - name: "Logging"
+          lineinfile:
+            path: "{{ log_path }}"
+            line: "{{ datetime }} {{ ansible_hostname }} {{ ansible_default_ipv4.address }} -- {{ error_msg }}"
+            insertafter: EOF
+            state: present
+            create: true
+          delegate_to: localhost
+
+        - meta: end_host
+   
+   ##############################
+   # Test case 2: Key not found #
+   ##############################
+    - name: "Reading /etc/login.defs"
+      slurp:
+        src: "/etc/login.defs"
+      register: file_content
+    - name: "Encoding /etc/login.defs"
+      set_fact:
+        targets: "{{ file_content['content'] | b64decode }}"
+    - name: "Setup"
+      set_fact:
+        error_msg: "[FAIL] 1D. Ensure password expiration is 90 days or less, PASS_MAX_DAYS key cannot be found"
+          # \s* matches \t as well, \t = 3 x \s
+        targetTC2: "{{ targets | regex_findall('\\n\\s*PASS_MAX_DAYS.*') | trim }}"
+    - name: "Test case 2 - Key not found"
+      when: targetTC2 | length == 0
+      block:
+        - name: "Results: Key not found"
+          debug:
+            msg: "{{ error_msg }}"
+        - name: "Logging"
+          lineinfile:
+            path: "{{ log_path }}"
+            line: "{{ datetime }} {{ ansible_hostname }} {{ ansible_default_ipv4.address }} -- {{ error_msg }}"
+            insertafter: EOF
+            state: present
+            create: true
+          delegate_to: localhost
+
+        - meta: end_host
+   
+   #########################
+   # Test case 3: No value #
+   #########################
+    - name: "Finding - no value"
+     # find lines with both key and value, if cannot be found, then no value found
+      set_fact:
+        error_msg: "[FAIL] 1D. Ensure password expiration is 90 days or less, PASS_MAX_DAYS has no value"
+        targetTC3: "{{ targetTC2 | select('search', '\\n\\s*PASS_MAX_DAYS\\s+\\S+') | list }}"
+    - name: "Test case 3: - No value"
+      when: targetTC3 | length == 0
+      block:
+        - name: "Result"
+          debug:
+            msg: "{{ error_msg }}"
+        - name: "Logging"
+          lineinfile:
+            path: "{{ log_path }}"
+            line: "{{ datetime }} {{ ansible_hostname }} {{ ansible_default_ipv4.address }} -- {{ error_msg }}"
+            insertafter: EOF
+            state: present
+            create: true
+          delegate_to: localhost
+
+        - meta: end_host
+   ################################
+   # Test case 4: Multiple values #
+   ################################
+    - name: "Finding - Multiple values"
+      set_fact:
+        error_msg: "[FAIL] 1D. Ensure password expiration is 90 days or less, PASS_MAX_DAYS has multiple values"
+        targetTC4: "{{ targetTC3 | last | regex_findall('\\n\\s*PASS_MAX_DAYS\\s+\\S+\\s+[^#]\\S+') }}"
+    - name: "Test case 4 - Multiple values"
+      when: targetTC4 | length > 0
+      block:
+        - name: "Result"
+          debug:
+            msg: "{{ error_msg }}"
+        - name: "Logging"
+          lineinfile:
+            path: "{{ log_path }}"
+            line: "{{ datetime }} {{ ansible_hostname }} {{ ansible_default_ipv4.address }} -- {{ error_msg }}"
+            insertafter: EOF
+            state: present
+            create: true
+          delegate_to: localhost
+        - meta: end_host
+
+   ##############################
+   # Test case 5: Invalid value #
+   ##############################
+    - name: "Finding - Invalid value"
+      set_fact:
+        # "()" creates a capture group and indicates precedence - findall helps capture the value within the "()"
+        targetTC5: "{{ targetTC3 | last | regex_findall('\\n\\s*PASS_MAX_DAYS\\s+(.+\\b)') }}"
+        int_Converted: "X"
+        error_msg: "[FAIL] 1D. Ensure password expiration is 90 days or less, PASS_MAX_DAYS has an invalid value"
+    - name: "debug"
+      debug:
+        msg: "targetTC5 = {{ targetTC5 }}"
+
+    - name: "Attempting convertion, Hex -> Deci"
+      when: targetTC5[0] | regex_search('^-*0[xX][0-9a-fA-F]+$')
+      set_fact:
+        int_Converted: "{{ targetTC5[0] | int(base=16) }}"
+    
+    - name: "Attempting convertion, Octal -> Deci"
+      when: int_Converted == 'X' and targetTC5[0] | regex_search('^-*0[0-7]+$')
+      set_fact:
+        int_Converted: "{{ targetTC5[0] | int(base=8) }}"
+      
+    - name: "Value -> Deci"
+      when: int_Converted == 'X' and targetTC5[0] | regex_search('^-*[0-9]+$')
+      set_fact:
+        int_Converted: "{{ targetTC5[0] }}"
+      
+    - name: "Test case 5 - Invalid value"
+      when: int_Converted == 'X' or ( int_Converted | int ) < -1 or ( int_Converted | int ) > 99999
+      block:
+        - name: "Result"
+          debug:
+            msg: "{{ error_msg }}"
+        - name: "Logging"
+          lineinfile:
+            path: "{{ log_path }}"
+            line: "{{ datetime }} {{ ansible_hostname }} {{ ansible_default_ipv4.address }} -- {{ error_msg }}"
+            insertafter: EOF
+            state: present
+            create: true
+          delegate_to: localhost
+
+        - meta: end_host
+
+   ####################################
+   # Test case 6: Non-compliant value #
+   ####################################
+    - name: "Finding non-compliant value"
+      set_fact:
+        error_msg: "[FAIL] 1D. Ensure password expiration is 90 days or less, PASS_MAX_DAYS is not set to 90 days or less"
+    - name: "Test case 6 - Non-compliant value"
+      when: ( int_Converted | int ) < 0 or ( int_Converted | int ) > 90
+      block:
+        - name: "Result - Invalid value"
+          debug:
+            msg: "{{ error_msg }}"
+        - name: "Logging"
+          lineinfile:
+            path: "{{ log_path }}"
+            line: "{{ datetime }} {{ ansible_hostname }} {{ ansible_default_ipv4.address }} -- {{ error_msg }}"
+            insertafter: EOF
+            state: present
+            create: true
+          delegate_to: localhost        
+        - meta: end_host
+   
+   ################################
+   # Test case 7: Compliant value #
+   ################################
+    - name: "Test case 7: Compliant value"
+      set_fact:
+        error_msg: "[PASS] 1D. Ensure password expiration is 90 days or less, Password expiration is set to 90 days or less"
+    - name: "Logging to /tmp/ansible1D.log"
+      block:
+        - name: "Result"
+          debug:
+            msg: "{{ error_msg }}"
+        - name: " Logging"
+          lineinfile:
+            path: "{{ log_path }}"
+            line: "{{ datetime }} {{ ansible_hostname }} {{ ansible_default_ipv4.address }} -- {{ error_msg }}"
+            insertafter: EOF
+            state: present
+            create: true
+          delegate_to: localhost

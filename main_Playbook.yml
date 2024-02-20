@@ -1,0 +1,49 @@
+---
+- name: "Preparation Play"
+  hosts: localhost
+  gather_facts: false
+  vars:
+    log_path: "{{ playbook_dir }}/logs"
+  tasks:
+    - name: "Preparing 1D_PMD_Playbook log file"
+      copy:
+       content: "############ 1D. Ensure password expiration is 90 days or less ################"
+       dest: "{{ log_path }}/ansible1D.log"
+       force: true
+
+- name: "Performing 1D_PMD_Playbook"
+  import_playbook: 1D_PMD_Playbook.yml
+
+- name: "Performing closing play"
+  # 1) check logs if there are failures
+  # 2) send email if errors are found.
+  hosts: localhost
+  gather_facts: false
+  vars:
+    numFailures: 0
+    fail_msgs: ""
+  tasks:
+    - name: "Read 1D. PMD log file"
+      slurp:
+        src: "{{ playbook_dir }}/logs/ansible1D.log"
+      register: file_content
+    - name: "Decode log file"
+      set_fact:
+        decoded_file: "{{ file_content['content'] | b64decode }}"
+    - name: "Find lines with [FAIL]"
+      set_fact:
+        target: "{{ decoded_file | regex_findall('^.*FAIL\\b.*', multiline=True) }}"
+    - debug:
+        msg: "{{ target }}"
+    - name: "Sending Email"
+      community.general.mail:
+        host: smtp.gmail.com
+        port: 587
+        sender: "justin.gxh98@gmail.com"
+        to: "justin.gxh98@gmail.com"
+        subject: "CIS Compliance check failure"
+        body: "{{ target | join('\n') }}"
+        username: "justin.gxh98@gmail.com"
+        password: "evik bjdh mwtc xddw"
+      delegate_to: localhost
+      when: target | length > 0
