@@ -1,10 +1,9 @@
 ---
 - name: "1D. PASS_MAX_DAYS"
-  hosts: RHEL-TARGET
+  hosts: ANSI-TARGET
   # PMD_Playbook_Failure: false
-  vars_files:
-    - var.yml
   vars:
+    datetime: "{{ '%d/%m/%Y_%H:%M' | strftime(ansible_date_time.epoch) }}"      
     log_path: "{{ playbook_dir }}/logs/ansible1D.log"
     error_msg: "[FAIL] 1D. Ensure password expiration is 90 days or less, /etc/login.defs not found"
   tasks:
@@ -28,7 +27,7 @@
             insertafter: EOF
             state: present
             create: true
-          delegate_to: localhost
+          delegate_to: ANSI-CONTROLLER
 
         - meta: end_host
    
@@ -60,7 +59,7 @@
             insertafter: EOF
             state: present
             create: true
-          delegate_to: localhost
+          delegate_to: ANSI-CONTROLLER
 
         - meta: end_host
    
@@ -85,7 +84,7 @@
             insertafter: EOF
             state: present
             create: true
-          delegate_to: localhost
+          delegate_to: ANSI-CONTROLLER
 
         - meta: end_host
    ################################
@@ -108,7 +107,7 @@
             insertafter: EOF
             state: present
             create: true
-          delegate_to: localhost
+          delegate_to: ANSI-CONTROLLER
         - meta: end_host
 
    ##############################
@@ -152,7 +151,7 @@
             insertafter: EOF
             state: present
             create: true
-          delegate_to: localhost
+          delegate_to: ANSI-CONTROLLER
 
         - meta: end_host
 
@@ -175,7 +174,7 @@
             insertafter: EOF
             state: present
             create: true
-          delegate_to: localhost        
+          delegate_to: ANSI-CONTROLLER
         - meta: end_host
    
    ################################
@@ -196,4 +195,4 @@
             insertafter: EOF
             state: present
             create: true
-          delegate_to: localhost
+          delegate_to: ANSI-CONTROLLER

@@ -1,6 +1,6 @@
 ---
 - name: "Preparation Play"
-  hosts: localhost
+  hosts: ANSI-CONTROLLER
   gather_facts: false
   vars:
     log_path: "{{ playbook_dir }}/logs"
@@ -17,7 +17,7 @@
 - name: "Performing closing play"
   # 1) check logs if there are failures
   # 2) send email if errors are found.
-  hosts: localhost
+  hosts: ANSI-CONTROLLER
   gather_facts: false
   vars:
     numFailures: 0
@@ -33,9 +33,10 @@
     - name: "Find lines with [FAIL]"
       set_fact:
         target: "{{ decoded_file | regex_findall('^.*FAIL\\b.*', multiline=True) }}"
-    - debug:
-        msg: "{{ target }}"
+    #- debug:
+       # msg: "{{ target }}"
     - name: "Sending Email"
+      when: target | length > 0
       community.general.mail:
         host: smtp.gmail.com
         port: 587
@@ -45,5 +46,4 @@
         body: "{{ target | join('\n') }}"
         username: "justin.gxh98@gmail.com"
         password: "evik bjdh mwtc xddw"
-      delegate_to: localhost
-      when: target | length > 0
+      delegate_to: ANSI-CONTROLLER

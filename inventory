@@ -1,2 +1,2 @@
-controller ansible_host=192.168.101.136 ansible_connection=ssh ansible_port=22 ansible_user=fanlit ansible_ssh_pass=123
-target ansible_hosts=192.168.101.136 ansible_connection=ssh ansible_port=22 ansible_user=fanlit ansible_ssh_pass=123
+ANSI-CONTROLLER ansible_host=192.168.22.128 ansible_connection=ssh ansible_port=22 ansible_user=user ansible_ssh_pass=123
+ANSI-TARGET ansible_host=192.168.22.129 ansible_connection=ssh ansible_port=22 ansible_user=user

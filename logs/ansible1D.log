@@ -1,0 +1,2 @@
+############ 1D. Ensure password expiration is 90 days or less ################
+21/02/2024_07:59 RHEL-TARGET 192.168.22.129 -- [FAIL] 1D. Ensure password expiration is 90 days or less, PASS_MAX_DAYS has an invalid value
