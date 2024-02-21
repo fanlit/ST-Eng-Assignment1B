@@ -7,7 +7,7 @@
   tasks:
     - name: "Preparing 1D_PMD_Playbook log file"
       copy:
-       content: "############ 1D. Ensure password expiration is 90 days or less ################"
+       content: ""
        dest: "{{ log_path }}/ansible1D.log"
        force: true
 

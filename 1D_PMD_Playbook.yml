@@ -24,9 +24,8 @@
           lineinfile:
             path: "{{ log_path }}"
             line: "{{ datetime }} {{ ansible_hostname }} {{ ansible_default_ipv4.address }} -- {{ error_msg }}"
-            insertafter: EOF
             state: present
-            create: true
+            insertafter: EOF
           delegate_to: ANSI-CONTROLLER
 
         - meta: end_host
@@ -56,9 +55,8 @@
           lineinfile:
             path: "{{ log_path }}"
             line: "{{ datetime }} {{ ansible_hostname }} {{ ansible_default_ipv4.address }} -- {{ error_msg }}"
-            insertafter: EOF
             state: present
-            create: true
+            insertafter: EOF
           delegate_to: ANSI-CONTROLLER
 
         - meta: end_host
@@ -83,7 +81,6 @@
             line: "{{ datetime }} {{ ansible_hostname }} {{ ansible_default_ipv4.address }} -- {{ error_msg }}"
             insertafter: EOF
             state: present
-            create: true
           delegate_to: ANSI-CONTROLLER
 
         - meta: end_host
@@ -106,7 +103,6 @@
             line: "{{ datetime }} {{ ansible_hostname }} {{ ansible_default_ipv4.address }} -- {{ error_msg }}"
             insertafter: EOF
             state: present
-            create: true
           delegate_to: ANSI-CONTROLLER
         - meta: end_host
 
@@ -150,7 +146,6 @@
             line: "{{ datetime }} {{ ansible_hostname }} {{ ansible_default_ipv4.address }} -- {{ error_msg }}"
             insertafter: EOF
             state: present
-            create: true
           delegate_to: ANSI-CONTROLLER
 
         - meta: end_host
@@ -173,7 +168,6 @@
             line: "{{ datetime }} {{ ansible_hostname }} {{ ansible_default_ipv4.address }} -- {{ error_msg }}"
             insertafter: EOF
             state: present
-            create: true
           delegate_to: ANSI-CONTROLLER
         - meta: end_host
    
@@ -194,5 +188,25 @@
             line: "{{ datetime }} {{ ansible_hostname }} {{ ansible_default_ipv4.address }} -- {{ error_msg }}"
             insertafter: EOF
             state: present
-            create: true
           delegate_to: ANSI-CONTROLLER
+        - meta: end_host
+
+    #################################
+    # Test case X: Unexpected Value #
+    #################################
+    - name: "Test case 7: Compliant value"
+      set_fact:
+        error_msg: "[FAIL] 1D. Ensure password expiration is 90 days or less, PASS_MAX_DAYS has unexpected value"
+    - name: "Logging to /tmp/ansible1D.log"
+      block:
+        - name: "Result"
+          debug:
+            msg: "{{ error_msg }}"
+        - name: " Logging"
+          lineinfile:
+            path: "{{ log_path }}"
+            line: "{{ datetime }} {{ ansible_hostname }} {{ ansible_default_ipv4.address }} -- {{ error_msg }}"
+            insertafter: EOF
+            state: present
+          delegate_to: ANSI-CONTROLLER
+        - meta: end_host
