@@ -132,7 +132,7 @@
         int_Converted: "{{ targetTC5[0] | int(base=8) }}"
       
     - name: "Value -> Deci"
-      when: int_Converted == 'X' and (targetTC5[0] == '0' or  (targetTC5[0] | regex_search('^-*[^0][0-9]+$')))
+      when: int_Converted == 'X' and (targetTC5[0] == '0' or  (targetTC5[0] | regex_search('^-*[1-9][0-9]*$')))
       set_fact:
         int_Converted: "{{ targetTC5[0] }}"
       
