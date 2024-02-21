@@ -119,12 +119,12 @@
       debug:
         msg: "targetTC5 = {{ targetTC5 }}"
 
-    - name: "Attempting convertion, Hex -> Deci"
+    - name: "Attempting conversion, Hex -> Deci"
       when: targetTC5[0] | regex_search('^-*0[xX][0-9a-fA-F]+$')
       set_fact:
         int_Converted: "{{ targetTC5[0] | int(base=16) }}"
     
-    - name: "Attempting convertion, Octal -> Deci"
+    - name: "Attempting conversion, Octal -> Deci"
       when: int_Converted == 'X' and targetTC5[0] | regex_search('^-*0[0-7]+$')
       set_fact:
         int_Converted: "{{ targetTC5[0] | int(base=8) }}"
@@ -174,10 +174,10 @@
    ################################
    # Test case 7: Compliant value #
    ################################
-    - name: "Test case 7: Compliant value"
+    - name: "Finding compliant value"
       set_fact:
         error_msg: "[PASS] 1D. Ensure password expiration is 90 days or less, Password expiration is set to 90 days or less"
-    - name: "Logging to /tmp/ansible1D.log"
+    - name: "Test case 7 - Compliant value"
       block:
         - name: "Result"
           debug:
@@ -194,10 +194,10 @@
     #################################
     # Test case X: Unexpected Value #
     #################################
-    - name: "Test case 7: Compliant value"
+    - name: "Finding unexpected Value"
       set_fact:
         error_msg: "[FAIL] 1D. Ensure password expiration is 90 days or less, PASS_MAX_DAYS has unexpected value"
-    - name: "Logging to /tmp/ansible1D.log"
+    - name: " Test case X: Unexpected Value"
       block:
         - name: "Result"
           debug:
