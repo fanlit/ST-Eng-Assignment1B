@@ -44,7 +44,7 @@
       set_fact:
         error_msg: "[FAIL] 1D. Ensure password expiration is 90 days or less, PASS_MAX_DAYS key cannot be found"
           # \s* matches \t as well, \t = 3 x \s
-        targetTC2: "{{ targets | regex_findall('\\n\\s*PASS_MAX_DAYS.*') | trim }}"
+        targetTC2: "{{ targets | regex_findall('\\n\\s*PASS_MAX_DAYS.*') }}"
     - name: "Test case 2 - Key not found"
       when: targetTC2 | length == 0
       block:
@@ -69,6 +69,8 @@
       set_fact:
         error_msg: "[FAIL] 1D. Ensure password expiration is 90 days or less, PASS_MAX_DAYS has no value"
         targetTC3: "{{ targetTC2 | select('search', '\\n\\s*PASS_MAX_DAYS\\s+\\S+') | list }}"
+    #- debug:
+       # var: targetTC3
     - name: "Test case 3: - No value"
       when: targetTC3 | length == 0
       block:
