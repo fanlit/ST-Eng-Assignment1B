@@ -7,9 +7,9 @@
   tasks:
     - name: "Preparing 1D_PMD_Playbook log file"
       copy:
-       content: ""
-       dest: "{{ log_path }}/ansible1D.log"
-       force: true
+        content: ""
+        dest: "{{ log_path }}/ansible1D.log"
+        force: true
 
 - name: "Performing 1D_PMD_Playbook"
   import_playbook: 1D_PMD_Playbook.yml
@@ -30,8 +30,8 @@
     - name: "Find lines with [FAIL]"
       set_fact:
         target: "{{ decoded_file | regex_findall('^.*FAIL\\b.*', multiline=True) }}"
-    #- debug:
-       # msg: "{{ target }}"
+    - debug:
+        msg: "{{ target }}"
     - name: "Sending Email"
       when: target | length > 0
       community.general.mail:
@@ -39,7 +39,7 @@
         port: 587
         sender: "justin.gxh98@gmail.com"
         to: "justin.gxh98@gmail.com"
-        subject: "CIS Compliance check failure"
+        subject: "CIS Compliance check, FAILURES: {{ target | length }}"
         body: "{{ target | join('\n') }}"
         username: "justin.gxh98@gmail.com"
         password: "evik bjdh mwtc xddw"
