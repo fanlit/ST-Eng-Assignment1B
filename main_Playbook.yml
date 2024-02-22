@@ -19,9 +19,6 @@
   # 2) send email if errors are found.
   hosts: ANSI-CONTROLLER
   gather_facts: false
-  vars:
-    numFailures: 0
-    fail_msgs: ""
   tasks:
     - name: "Read 1D. PMD log file"
       slurp:
