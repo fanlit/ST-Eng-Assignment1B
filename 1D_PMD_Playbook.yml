@@ -44,7 +44,10 @@
           # \s* matches \t as well, \t = 3 x \s
           # regex_findall() returns a list of elements
           # "?:" indicates non-capturing group - returns the entire line rather than just the values inside ()
-        targetTC2: "{{ targets | regex_findall('\\n\\s*PASS_MAX_DAYS(?:$|\\s+.*)') }}"
+          # [ \\t] indicates only horizontal whitespaces, \s in python regex also matches new lines
+        targetTC2: "{{ targets | regex_findall('\\n+\\s*PASS_MAX_DAYS(?:\\n|[ \\t]+.*)') }}"
+    - debug:
+        var: targetTC2
     - name: "Test case 2 - Key not found"
       when: targetTC2 | length == 0
       block:
@@ -66,7 +69,7 @@
      # find lines with both key and value, if cannot be found, then no value found
       set_fact:
         error_msg: "[FAIL] 1D. Ensure password expiration is 90 days or less, PASS_MAX_DAYS has no value"
-        # select('search',...) allows iterate on a list with multiple elements,  returns a generator but Ansible may auto pipe to list
+        # select('search',...) allows search on a list with multiple elements,  returns a generator but Ansible may auto pipe to list
         # filter. Added extra list filter to be sure.
         targetTC3: "{{ targetTC2 | select('search', '\\n\\s*PASS_MAX_DAYS\\s+\\S+') | list }}"
     #- debug:
@@ -113,12 +116,8 @@
         targetTC5: "{{ targetTC3 | last | regex_findall('\\n\\s*PASS_MAX_DAYS\\s+(.+\\b)') }}"
         int_Converted: "X"
         error_msg: "[FAIL] 1D. Ensure password expiration is 90 days or less, PASS_MAX_DAYS has an invalid value"
-    #- name: "debug"
-      #debug:
-       # msg: "targetTC5 = {{ targetTC5 }}"
-
     - name: "Attempting conversion, Hex -> Deci"
-      when: targetTC5[0] | regex_search('^-*0[xX][0-9a-fA-F]+$')
+      when: targetTC5[0] | regex_search('^-*0*[xX][0-9a-fA-F]+$')
       set_fact:
         int_Converted: "{{ targetTC5[0] | int(base=16) }}"
     
