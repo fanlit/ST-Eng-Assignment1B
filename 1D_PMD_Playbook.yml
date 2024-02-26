@@ -45,7 +45,9 @@
           # regex_findall() returns a list of elements
           # "?:" indicates non-capturing group - returns the entire line rather than just the values inside ()
           # [ \\t] indicates only horizontal whitespaces, \s in python regex also matches new lines
-        targetTC2: "{{ targets | regex_findall('\\n+\\s*PASS_MAX_DAYS(?:\\n|[ \\t]+.*)') }}"
+        targetTC2: "{{ targets | regex_findall('\\n\\s*PASS_MAX_DAYS.*(?=\\n)') | select('search', '\\n\\s*PASS_MAX_DAYS(?:$|[ \\t]+.*)') }}"
+    - debug:
+        var: targets
     - debug:
         var: targetTC2
     - name: "Test case 2 - Key not found"
@@ -72,8 +74,8 @@
         # select('search',...) allows search on a list with multiple elements,  returns a generator but Ansible may auto pipe to list
         # filter. Added extra list filter to be sure.
         targetTC3: "{{ targetTC2 | select('search', '\\n\\s*PASS_MAX_DAYS\\s+\\S+') | list }}"
-    #- debug:
-       # var: targetTC3
+    - debug:
+        var: targetTC3
     - name: "Test case 3: - No value"
       when: targetTC3 | length == 0
       block:
